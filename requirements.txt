@@ -1,0 +1,7 @@
+httpx
+tldextract
+rapidfuzz
+beautifulsoup4
+kivy
+pyjnius
+certifi
