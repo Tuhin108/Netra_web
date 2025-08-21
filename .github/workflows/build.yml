@@ -43,10 +43,10 @@ jobs:
 
     - name: Build with Buildozer
       run: |
-        buildozer android debug
+        cd build && buildozer android debug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: android-apk
-        path: bin/*.apk
+        path: build/bin/*.apk
