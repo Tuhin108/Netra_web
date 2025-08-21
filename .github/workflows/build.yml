@@ -57,13 +57,21 @@ jobs:
       run: |
         export ANDROID_HOME=$HOME/android-sdk
         export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "build-tools;34.0.0" "platform-tools" "platforms;android-34"
+        # Accept licenses and install required packages
+        mkdir -p $ANDROID_HOME/licenses
+        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
+        echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "build-tools;34.0.0" "platform-tools" "platforms;android-34" "cmdline-tools;latest"
 
     - name: Build with Buildozer
       run: |
         export ANDROID_HOME=$HOME/android-sdk
-        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
-        cd build && buildozer android debug
+        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/build-tools/34.0.0:$PATH
+        # Set Buildozer config values
+        buildozer -v android set-config --section app android.sdk_dir $ANDROID_HOME
+        buildozer -v android set-config --section app android.ndk_dir $ANDROID_HOME/ndk/25.0.8775105
+        # Build the app
+        cd build && buildozer -v android debug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4

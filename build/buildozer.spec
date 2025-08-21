@@ -11,11 +11,10 @@ icon.filename = %(source.dir)s/icon.png
 presplash.filename = %(source.dir)s/presplash.png
 fullscreen = 0
 
-android.permissions = INTERNET
-android.api = 31
+android.permissions = INTERNET,ACCESS_NETWORK_STATE
+android.api = 34
 android.minapi = 21
-android.sdk = 24
-android.ndk = 19b
+android.ndk = 25b
 
 # Android intent filters
 android.manifest.intent_filters = assets/intent_filters.xml
