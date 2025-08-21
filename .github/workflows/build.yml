@@ -2,9 +2,9 @@ name: Build apk
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   build-apk:
@@ -37,16 +37,30 @@ jobs:
           libswscale-dev \
           libavformat-dev \
           libavcodec-dev \
-          zlib1g-dev
+          zlib1g-dev \
+          wget \
+          unzip
         pip install --upgrade -r requirements.txt
         pip install --upgrade buildozer cython==0.29.34
 
+    - name: Install Android SDK Build-Tools
+      run: |
+        wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O cmdline-tools.zip
+        unzip cmdline-tools.zip -d $HOME/cmdline-tools
+        mkdir -p $HOME/android-sdk/cmdline-tools/latest
+        mv $HOME/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/
+        export ANDROID_HOME=$HOME/android-sdk
+        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "build-tools;34.0.0" "platform-tools" "platforms;android-34"
+
     - name: Build with Buildozer
       run: |
-        buildozer android debug
+        export ANDROID_HOME=$HOME/android-sdk
+        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+        cd build && buildozer android debug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: android-apk
-        path: bin/*.apk
+        path: build/bin/*.apk
