@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="scan-container">
+    <div class="welcome-section">
+        <h2>Scan URLs for Security Threats</h2>
+        <p>Enter a URL to analyze for phishing, malware, redirects, and other security risks.</p>
+    </div>
+
+    <form id="scan-form" class="scan-form">
+        <div class="form-group">
+            <label for="url-input">Enter URL to scan:</label>
+            <div class="input-group">
+                <input 
+                    type="url" 
+                    id="url-input" 
+                    name="url" 
+                    placeholder="https://example.com" 
+                    required
+                    pattern="https?://.+"
+                >
+                <button type="submit" class="scan-button">
+                    <i class="fas fa-search"></i>
+                    Scan URL
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <div id="progress-container" class="progress-container hidden">
+        <div class="progress-header">
+            <h3>Scanning in Progress</h3>
+            <div id="progress-message" class="progress-message">Starting scan...</div>
+        </div>
+        
+        <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        
+        <div class="progress-details">
+            <span id="progress-percent">0%</span>
+            <span id="elapsed-time">00:00</span>
+        </div>
+    </div>
+
+    <div id="error-container" class="error-container hidden">
+        <div class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="error-text"></span>
+        </div>
+    </div>
+
+    <div class="features-section">
+        <h3>What We Check:</h3>
+        <div class="features-grid">
+            <div class="feature">
+                <i class="fas fa-redo-alt"></i>
+                <h4>Redirect Analysis</h4>
+                <p>Track and analyze HTTP redirect chains</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-globe"></i>
+                <h4>TLD Detection</h4>
+                <p>Identify suspicious top-level domains</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-building"></i>
+                <h4>Brand Protection</h4>
+                <p>Detect brand impersonation attempts</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-shield-alt"></i>
+                <h4>URLHaus Integration</h4>
+                <p>Check against known malicious URLs</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-code"></i>
+                <h4>HTML Analysis</h4>
+                <p>Detect JavaScript and meta redirects</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-key"></i>
+                <h4>Form Security</h4>
+                <p>Identify sensitive input forms</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Store scan ID for progress tracking
+let currentScanId = null;
+let progressInterval = null;
+let startTime = null;
+
+document.getElementById('scan-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const urlInput = document.getElementById('url-input');
+    const url = urlInput.value.trim();
+    
+    if (!url) {
+        showError('Please enter a URL to scan');
+        return;
+    }
+
+    startScan(url);
+});
+
+function startScan(url) {
+    // Reset UI
+    hideError();
+    showProgress();
+    updateProgress(0, 'Starting scan...');
+    startTime = Date.now();
+    
+    // Disable form during scan
+    document.getElementById('scan-form').classList.add('disabled');
+    
+    // Start scan
+    fetch('/scan', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ url: url })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        currentScanId = data.scan_id;
+        startProgressPolling();
+    })
+    .catch(error => {
+        showError('Failed to start scan: ' + error.message);
+        hideProgress();
+        document.getElementById('scan-form').classList.remove('disabled');
+    });
+}
+
+function startProgressPolling() {
+    if (progressInterval) {
+        clearInterval(progressInterval);
+    }
+    
+    progressInterval = setInterval(() => {
+        if (!currentScanId) return;
+        
+        fetch(`/scan/${currentScanId}/status`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                updateProgress(data.progress * 100, data.message);
+                updateElapsedTime();
+                
+                if (data.status === 'completed') {
+                    clearInterval(progressInterval);
+                    // Redirect to results page
+                    window.location.href = `/results/${currentScanId}`;
+                } else if (data.status === 'error') {
+                    clearInterval(progressInterval);
+                    showError('Scan failed: ' + data.error);
+                    hideProgress();
+                    document.getElementById('scan-form').classList.remove('disabled');
+                }
+            })
+            .catch(error => {
+                console.error('Progress polling error:', error);
+            });
+    }, 1000); // Poll every second
+}
+
+function updateProgress(percent, message) {
+    document.getElementById('progress-fill').style.width = percent + '%';
+    document.getElementById('progress-percent').textContent = Math.round(percent) + '%';
+    document.getElementById('progress-message').textContent = message;
+}
+
+function updateElapsedTime() {
+    if (!startTime) return;
+    
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    
+    document.getElementById('elapsed-time').textContent = 
+        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function showProgress() {
+    document.getElementById('progress-container').classList.remove('hidden');
+}
+
+function hideProgress() {
+    document.getElementById('progress-container').classList.add('hidden');
+}
+
+function showError(message) {
+    document.getElementById('error-text').textContent = message;
+    document.getElementById('error-container').classList.remove('hidden');
+}
+
+function hideError() {
+    document.getElementById('error-container').classList.add('hidden');
+}
+</script>
+{% endblock %}

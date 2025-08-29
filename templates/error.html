@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Error - Netra{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-content">
+        <div class="error-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        
+        <h2>Oops! Something went wrong</h2>
+        
+        <div class="error-message">
+            <p>{{ message }}</p>
+        </div>
+        
+        <div class="error-actions">
+            <button onclick="window.location.href='/'" class="action-btn primary">
+                <i class="fas fa-home"></i>
+                Go Home
+            </button>
+            
+            <button onclick="window.history.back()" class="action-btn">
+                <i class="fas fa-arrow-left"></i>
+                Go Back
+            </button>
+            
+            <button onclick="window.location.reload()" class="action-btn">
+                <i class="fas fa-redo"></i>
+                Try Again
+            </button>
+        </div>
+        
+        {% if debug and error %}
+        <div class="error-details">
+            <h4>Technical Details:</h4>
+            <pre>{{ error }}</pre>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.error-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    text-align: center;
+}
+
+.error-content {
+    max-width: 500px;
+    padding: 40px;
+}
+
+.error-icon {
+    font-size: 4rem;
+    color: #dc3545;
+    margin-bottom: 20px;
+}
+
+.error-content h2 {
+    color: #dc3545;
+    margin-bottom: 20px;
+    font-size: 2rem;
+}
+
+.error-message {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+    color: #721c24;
+}
+
+.error-message p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.error-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+
+.action-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.action-btn {
+    background: #6c757d;
+    color: white;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+}
+
+.error-details {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: left;
+}
+
+.error-details h4 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.error-details pre {
+    background: #e9ecef;
+    padding: 15px;
+    border-radius: 5px;
+    overflow-x: auto;
+    font-size: 12px;
+    color: #212529;
+}
+
+@media (max-width: 768px) {
+    .error-actions {
+        flex-direction: column;
+    }
+    
+    .action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

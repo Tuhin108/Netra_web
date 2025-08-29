@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Results - Netra{% endblock %}
+
+{% block content %}
+<div class="results-container">
+    <div class="results-header">
+        <h2>Scan Results</h2>
+        <div class="scan-info">
+            <p><strong>Scanned URL:</strong> {{ scan_data.url }}</p>
+            <p><strong>Final URL:</strong> {{ trace_result.final_url or scan_data.url }}</p>
+            <p><strong>Scan Time:</strong> {{ (scan_data.completed_at - scan_data.started_at)|round(2) }} seconds</p>
+        </div>
+    </div>
+
+    <div class="verdict-section">
+        <div class="verdict verdict-{{ verdict.label|lower }}">
+            <div class="verdict-icon">
+                {% if verdict.label == "SAFE" %}
+                    <i class="fas fa-check-circle"></i>
+                {% elif verdict.label == "SUSPICIOUS" %}
+                    <i class="fas fa-exclamation-triangle"></i>
+                {% elif verdict.label == "UNSAFE" %}
+                    <i class="fas fa-times-circle"></i>
+                {% else %}
+                    <i class="fas fa-question-circle"></i>
+                {% endif %}
+            </div>
+            <div class="verdict-content">
+                <h3>{{ verdict.label }}</h3>
+                <p class="score">Score: {{ verdict.score }}/100</p>
+                {% if verdict.reasons %}
+                    <div class="reasons">
+                        <h4>Reasons:</h4>
+                        <ul>
+                            {% for reason in verdict.reasons %}
+                                <li>{{ reason }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="details-section">
+        <h3>Detailed Analysis</h3>
+        
+        {% if trace_result.hops %}
+        <div class="detail-card">
+            <h4>Redirect Chain ({{ trace_result.hops|length }} hops)</h4>
+            <div class="redirect-chain">
+                {% for hop in trace_result.hops %}
+                <div class="redirect-hop">
+                    <div class="hop-number">#{{ loop.index }}</div>
+                    <div class="hop-details">
+                        <div class="hop-url">{{ hop.url }}</div>
+                        <div class="hop-meta">
+                            {% if hop.status_code %}
+                                <span class="status-code status-{{ hop.status_code // 100 }}x">
+                                    {{ hop.status_code }} {{ hop.reason }}
+                                </span>
+                            {% endif %}
+                            {% if hop.elapsed_ms %}
+                                <span class="elapsed">({{ hop.elapsed_ms }}ms)</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if trace_result.js_or_meta_followed %}
+        <div class="detail-card">
+            <h4>HTML/JavaScript Redirect Detected</h4>
+            <p>The page contained meta refresh or JavaScript that redirected to a different URL.</p>
+        </div>
+        {% endif %}
+
+        {% if trace_result.has_login_form %}
+        <div class="detail-card warning">
+            <h4><i class="fas fa-exclamation-triangle"></i> Sensitive Form Detected</h4>
+            <p>The page contains forms that may collect sensitive information (passwords, credit cards, etc.).</p>
+        </div>
+        {% endif %}
+
+        {% if trace_result.content_type %}
+        <div class="detail-card">
+            <h4>Content Type</h4>
+            <p>{{ trace_result.content_type }}</p>
+            {% if 'application/octet-stream' in trace_result.content_type or 'attachment' in trace_result.content_type %}
+            <p class="warning-text"><i class="fas fa-exclamation-triangle"></i> This appears to be a file download.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if trace_result.errors %}
+        <div class="detail-card error">
+            <h4><i class="fas fa-bug"></i> Errors Encountered</h4>
+            <ul>
+                {% for error in trace_result.errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="actions-section">
+        <h3>Actions</h3>
+        <div class="action-buttons">
+            <button onclick="copyToClipboard('{{ scan_data.url }}')" class="action-btn">
+                <i class="fas fa-copy"></i>
+                Copy Original URL
+            </button>
+            <button onclick="copyToClipboard('{{ trace_result.final_url or scan_data.url }}')" class="action-btn">
+                <i class="fas fa-copy"></i>
+                Copy Final URL
+            </button>
+            <a href="{{ trace_result.final_url or scan_data.url }}" target="_blank" rel="noopener noreferrer" class="action-btn">
+                <i class="fas fa-external-link-alt"></i>
+                Visit URL (Caution)
+            </a>
+            <button onclick="window.location.href='/'" class="action-btn">
+                <i class="fas fa-redo"></i>
+                Scan Another URL
+            </button>
+        </div>
+    </div>
+
+    {% if verdict.reasons %}
+    <div class="security-tips">
+        <h3>Security Tips</h3>
+        <div class="tips">
+            {% if verdict.label == "UNSAFE" %}
+                <p><strong>⚠️ High Risk:</strong> Avoid visiting this website. It exhibits multiple suspicious characteristics.</p>
+            {% elif verdict.label == "SUSPICIOUS" %}
+                <p><strong>⚠️ Caution Advised:</strong> This website shows some suspicious signs. Proceed with caution.</p>
+            {% elif verdict.label == "SAFE" %}
+                <p><strong>✅ Appears Safe:</strong> No major security issues detected, but always remain vigilant.</p>
+            {% endif %}
+            
+            <ul>
+                <li>Never enter sensitive information on unfamiliar websites</li>
+                <li>Check for HTTPS and valid certificates</li>
+                <li>Look for spelling errors in domain names</li>
+                <li>Be cautious of unexpected redirects</li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('URL copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+        alert('Failed to copy URL');
+    });
+}
+
+// Color code status codes
+document.addEventListener('DOMContentLoaded', function() {
+    const statusElements = document.querySelectorAll('.status-code');
+    statusElements.forEach(el => {
+        const statusClass = el.className.match(/status-(\d+)x/);
+        if (statusClass) {
+            const statusGroup = statusClass[1];
+            if (statusGroup === '2') {
+                el.style.color = '#28a745';
+            } else if (statusGroup === '3') {
+                el.style.color = '#17a2b8';
+            } else if (statusGroup === '4') {
+                el.style.color = '#ffc107';
+            } else if (statusGroup === '5') {
+                el.style.color = '#dc3545';
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

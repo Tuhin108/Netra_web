@@ -1,0 +1,12 @@
+# Local Denylist - Add malicious domains here
+# This file contains domains that should be flagged as malicious
+
+# Example malicious domains (for testing)
+malicious-example.com
+phishing-site.xyz
+fake-bank-login.top
+scam-website.click
+dangerous-domain.shop
+
+# Add your own malicious domains below this line
+# Format: one domain per line, without http:// or https://

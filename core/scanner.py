@@ -9,9 +9,9 @@ from core.rules import (
     SUSPICIOUS_TLDS, REDIRECT_LIMIT, BRAND_NAMES, BRAND_SIMILARITY_THRESHOLD,
     SENSITIVE_INPUT_KEYWORDS, SCORE_SUSPICIOUS_TLD, SCORE_TOO_MANY_REDIRECTS,
     SCORE_DOMAIN_MISMATCH, SCORE_BRAND_LOOKALIKE, SCORE_SENSITIVE_FORM,
-    SCORE_BINARY_DOWNLOAD, SCORE_URLHAUS_HIT, SCORE_NETWORK_ERROR
+    SCORE_BINARY_DOWNLOAD, SCORE_DENYLIST_HIT, SCORE_NETWORK_ERROR,
+    check_denylist
 )
-from core.urlhaus import check_urlhaus
 from core.html_redirects import find_html_redirect
 
 from typing import Callable
@@ -148,16 +148,16 @@ def scan_url(url: str, progress_callback: ProgressCallback, timeout_s: float = 8
                         reasons.append("Page contains a sensitive data form (password, etc.)")
                         trace_result.has_login_form = True
 
-            # 6. Query URLHaus
-            progress_callback(0.85, "Checking reputation...")
+            # 6. Check against local denylist
+            progress_callback(0.85, "Checking against denylist...")
             urls_to_check = {hop.url for hop in trace_result.hops}
             if trace_result.final_url:
                 urls_to_check.add(trace_result.final_url)
             
             for u in urls_to_check:
-                if check_urlhaus(u):
-                    score += SCORE_URLHAUS_HIT
-                    reasons.append("Flagged by URLHaus as malicious")
+                if check_denylist(u):
+                    score += SCORE_DENYLIST_HIT
+                    reasons.append("Domain found in local denylist")
                     break # One hit is enough
 
     except httpx.RequestError as e:
